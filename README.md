@@ -1,5 +1,5 @@
 ## Kyomuhangi-and-Giorgi_-thresholdfree
-TITLE:  A threshold-free approach with age-dependency for estimating malaria seroprevalence
+## Title:  A threshold-free approach with age-dependency for estimating malaria seroprevalence
 
 authors:  Irene Kyomuhangi (i.kyomuhangi@lancaster.ac.uk, kyomuhai@gmail.com)  and Emanuele Giorgi, Lancaster University (e.giorgi@lancaster.ac.uk), CHICAS,  Lancaster University 
 
@@ -17,7 +17,7 @@ To request access to the dataset used, please contact Gillian Stresman (Gillian.
 
 
 # Packages
-Packages to install: numDeriv, tidyverse, latex2exp, data.table
+This code is run in R. Packages to install: numDeriv, tidyverse, latex2exp, data.table
 
 # Data
 
