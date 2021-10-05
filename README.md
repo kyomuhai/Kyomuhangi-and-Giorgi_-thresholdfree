@@ -1,2 +1,32 @@
 # Kyomuhangi-and-Giorgi_-thresholdfree
-A threshold-free approach with age-dependency for estimating malaria seroprevalence
+TITLE:  A threshold-free approach with age-dependency for estimating malaria seroprevalence
+authors:  Irene Kyomuhangi, Lancaster University (i.kyomuhangi@lancaster.ac.uk, kyomuhai@gmail.com)  
+          Emanuele Giorgi, Lancaster University (e.giorgi@lancaster.ac.uk)
+
+
+## BACKGROUND 
+This script contains syntax used for the analysis of malaria serology data as described in the paper: 
+"A threshold-free approach with age-dependency for estimating malaria seroprevalence", as specified for the M2 approach. 
+For simplicity, code for M1 is not provided, however this is available on request from the authors. 
+The antibody measurements used in this analysis are PfAMA OD values obtained from ELISA, however the methods are applicable to any malaria antigen type, and continuous antibody measurement. 
+
+Throughout the script we indicate where the code may need to change depending on the dataset/antibody type under analysis. 
+Explanations of the functions and operations used are provided within the syntax itself, and further details of statistical/mathematical principles of this analysis can be found in the paper. 
+
+To request access to the dataset used, please contact Gillian Stresman (Gillian.Stresman@lshtm.ac.uk) or Chris Drakeley (Chris.Drakeley@lshtm.ac.uk) at LSHTM.  
+
+
+## PACKAGES
+Packages to install:
+numDeriv
+tidyverse
+latex2exp
+data.table
+
+## DATA
+
+Data for this analysis should contain:
+1) continuous antibody measurements (eg, OD and MFI). Note that this analysis does not use seropositive/seronegative values
+2) age in years
+Ensure that your dataset does not contain missing values for either of these variables. 
+This code can be extended to include analysis using other variables/covariates 9e.g altitude), and we have indicated where this is possible in the syntax. 
