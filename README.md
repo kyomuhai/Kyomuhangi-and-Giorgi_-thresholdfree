@@ -1,10 +1,10 @@
-# Kyomuhangi-and-Giorgi_-thresholdfree
+## Kyomuhangi-and-Giorgi_-thresholdfree
 TITLE:  A threshold-free approach with age-dependency for estimating malaria seroprevalence
 
 authors:  Irene Kyomuhangi (i.kyomuhangi@lancaster.ac.uk, kyomuhai@gmail.com)  and Emanuele Giorgi, Lancaster University (e.giorgi@lancaster.ac.uk), CHICAS,  Lancaster University 
 
 
-## Background
+# Background
 This script contains syntax used for the analysis of malaria serology data as described in the paper: 
 "A threshold-free approach with age-dependency for estimating malaria seroprevalence", as specified for the M2 approach. 
 For simplicity, code for M1 is not provided, however this is available on request from the authors. 
@@ -16,10 +16,10 @@ Explanations of the functions and operations used are provided within the syntax
 To request access to the dataset used, please contact Gillian Stresman (Gillian.Stresman@lshtm.ac.uk) or Chris Drakeley (Chris.Drakeley@lshtm.ac.uk) at LSHTM.  
 
 
-## Packages
+# Packages
 Packages to install: numDeriv, tidyverse, latex2exp, data.table
 
-## Data
+# Data
 
 Data for this analysis should contain:
 1) continuous antibody measurements (eg, OD and MFI). Note that this analysis does not use seropositive/seronegative values
