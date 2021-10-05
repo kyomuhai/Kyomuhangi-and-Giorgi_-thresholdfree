@@ -17,11 +17,7 @@ To request access to the dataset used, please contact Gillian Stresman (Gillian.
 
 
 ## PACKAGES
-Packages to install:
-numDeriv
-tidyverse
-latex2exp
-data.table
+Packages to install: numDeriv, tidyverse, latex2exp, data.table
 
 ## DATA
 
