@@ -17,7 +17,7 @@ To request access to the dataset used, please contact Gillian Stresman (Gillian.
 
 
 # Packages
-This code is run in R. Packages to install: numDeriv, tidyverse, latex2exp, data.table
+This code is run in R. Packages to install: numDeriv, tidyverse, latex2exp, data.table, lme4, stringr, dplyr, haven
 
 # Data
 
