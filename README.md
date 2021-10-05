@@ -1,9 +1,7 @@
 # Kyomuhangi-and-Giorgi_-thresholdfree
 TITLE:  A threshold-free approach with age-dependency for estimating malaria seroprevalence
 
-authors:  Irene Kyomuhangi, Lancaster University (i.kyomuhangi@lancaster.ac.uk, kyomuhai@gmail.com)  
-
-          Emanuele Giorgi, Lancaster University (e.giorgi@lancaster.ac.uk)
+authors:  Irene Kyomuhangi (i.kyomuhangi@lancaster.ac.uk, kyomuhai@gmail.com)  and Emanuele Giorgi, Lancaster University (e.giorgi@lancaster.ac.uk), CHICAS,  Lancaster University 
 
 
 ## BACKGROUND 
