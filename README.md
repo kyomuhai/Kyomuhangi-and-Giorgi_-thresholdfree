@@ -1,6 +1,8 @@
 # Kyomuhangi-and-Giorgi_-thresholdfree
 TITLE:  A threshold-free approach with age-dependency for estimating malaria seroprevalence
+
 authors:  Irene Kyomuhangi, Lancaster University (i.kyomuhangi@lancaster.ac.uk, kyomuhai@gmail.com)  
+
           Emanuele Giorgi, Lancaster University (e.giorgi@lancaster.ac.uk)
 
 
@@ -28,5 +30,7 @@ data.table
 Data for this analysis should contain:
 1) continuous antibody measurements (eg, OD and MFI). Note that this analysis does not use seropositive/seronegative values
 2) age in years
+
 Ensure that your dataset does not contain missing values for either of these variables. 
+
 This code can be extended to include analysis using other variables/covariates 9e.g altitude), and we have indicated where this is possible in the syntax. 
