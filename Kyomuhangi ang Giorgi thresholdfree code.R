@@ -3,7 +3,10 @@
 ####BACKGROUND 
 # 
 # This script contains syntax used for the analysis of malaria serology data as described in the paper: 
-# "A threshold-free approach with age-dependency for estimating malaria seroprevalence", as specified for the M2 approach. 
+# "A threshold-free approach with age-dependency for estimating malaria seroprevalence". 
+# The code is split into 2 parts. 
+    # Part A implements M2, the threshold-free approach introduced in this paper, and 
+    # Part B implements M1, the classic threshold dependent approach as described in the paper. 
 
 # The antibody measurements used in this analysis are PfAMA OD values obtained from ELISA, 
 # however the methods are applicable to any malaria antigen type, and continuous antibody measurement. 
@@ -14,9 +17,13 @@
 
 # To request access to the dataset used, please contact Gillian Stresman (Gillian.Stresman@lshtm.ac.uk) or Chris Drakeley (Chris.Drakeley@lshtm.ac.uk) at LSHTM.  
 
-#******************************************************************************************** 
-#*#******************************************************************************************** 
 
+
+#******************************************************************************************** 
+#********************************************************************************************* 
+#********************************************************************************************* 
+# PART A - the threshold-free approach as described by M2 in the paper
+#********************************************************************************************* 
 
 
 rm(list=ls())
@@ -26,10 +33,63 @@ setwd("~/ama analysis") #set the working directory accordingly
 load("amadata.RData") 
 # this dataset should contain the continuous antibody measurements and age of individuals
 # ensure that each observation is not missing any of these two variables. 
+#In the code that follows, the continuous antibody measurement is indicated by 'ama_norm', and age by 'age'
+library(tidyverse)
+library(haven)
+library(lme4)
+library(stringr)
 
 
 #********************************************************************************************      
-#Generate required vectors and objects
+#Descriptive graphs and exploratory analysis
+#********************************************************************************************  
+#Descriptive graphs and exploratory analysis help to determine trends across age and how to specify equations 8, 9 and 10
+#This analysis geneastes figures 2 and 3
+
+
+#**************** 
+##Figure 2(a) 
+#**************** 
+
+par(mar=c(5.1,5.5,4.1,2.1),mgp=c(4, 1, 0))
+hist(data$age, breaks=40,cex.axis=1.5, cex.main=2, cex.sub=1.5, cex.axis=2, xlab="Age", main="a", xaxt='n', yaxt='n', cex.lab=2,ylab="Number of observations", ylim=c(0,1000))
+axis(side=1, at=seq(0,16, 2),cex.axis=1.5)
+axis(side=2, at=seq(0,1100, 200),cex.axis=2)
+
+
+#****************   
+##Figure 2(c)  
+#****************
+
+hist(log(data$ama_norm), breaks=40,cex.main=2, cex.sub=1.5, cex.lab=2, cex.axis=2, xlab="Log OD", main="b", ylab="Density", ylim=c(0,0.4),xaxt='n', xlim=c(-8,2),freq=F)
+axis(side=1, at=seq(-8,2, 2),cex.axis=1.5)
+par(mfrow=c(1,1))
+
+
+#****************   
+##Figure 3(a)  
+#**************** 
+
+library(dplyr)
+amadata1 <- as.data.frame(cbind((data$age),log(data$ama_norm)))
+names(amadata1) <- c("age","ab")
+amadata1_summary <- amadata1 %>% 
+  dplyr::group_by(age) %>%   
+  dplyr::summarise(mean_ab = mean(ab),  
+                   sd_ab = sd(ab), 
+                   n_ab = n(), 
+                   SE_ab = sd(ab)/sqrt(n())) 
+ama_plot <- ggplot(amadata1_summary, aes(age, mean_ab)) + 
+  geom_point() +  
+  geom_errorbar(aes(ymin = mean_ab - sd_ab, ymax = mean_ab + sd_ab), width=0.2)
+
+ama_plot + labs(y="Mean log OD", x = "Age") + 
+  ggtitle("a") + theme_classic() +theme(text = element_text(size=25)) +theme(plot.title = element_text(hjust = 0.5)) + scale_x_continuous(breaks = seq(0, 16, by = 2)) + ylim(-5, 1) + theme(axis.title.y = element_text(margin = margin(t = 0, r = 20, b = 0, l = 0)))
+
+
+
+#********************************************************************************************      
+#Generate required vectors and objects for M2
 #********************************************************************************************  
 y <- log(data$ama_norm)
 a <- data$age
@@ -485,6 +545,416 @@ compute.pr.a <- function(interval,seroprev.b) {
   
   f_u <- function(a) exp((log(lambda_u)-log((lambda_u+omega))))*(1-exp(-(lambda_u+omega)*a))
   f_u <- Vectorize(f_u,"a")
+    
+  curve(f,col="#AB1779",add = TRUE, lwd=2)
+   curve(f_l,col="#AB1779",add = TRUE, lwd=1, lty=3)
+  curve(f_u,col="#AB1779",add = TRUE, lwd=1, lty=3)
+}
+
+compute.pr.a(interval,seroprev.b)
+
+save.image("ama threshold free.RData")
+                         
+                         
+                         
+                         
+                         
+                         
+   
+#******************************************************************************************** 
+#********************************************************************************************* 
+#********************************************************************************************* 
+# PART B - the classic threshold dependent approach as described by M1 in the paper
+#*********************************************************************************************                         
+#********************************************************************************************      
+
+rm(list=ls())
+setwd("~/ama analysis") #set the working directory accordingly
+
+#load the required dataset 
+load("amadata.RData") 
+# this dataset should contain the continuous antibody measurements and age of individuals
+# ensure that each observation is not missing any of these two variables. 
+#In the code that follows, the continuous antibody measurement is indicated by 'ama_norm', and age by 'age'
+
+library(tidyverse)
+library(haven)
+library(lme4)
+library(stringr)
+
+                         
+#Generate required vectors and objects
+#********************************************************************************************  
+#set all ages to 1. This is only for the purpose of generating the mixture distribution. Age in this case is not accounted for. 
+a <- rep(1,length(y))
+ind.age <- list()
+max.age <- max(a)
+n <- nrow(data)
+
+#********************************************************************************************      
+#Create a function to implement equations M1 equations. 
+#******************************************************************************************** 
+
+#********************************************* 
+##Linear predictors (equations 8 and 10) are set to intercept only (i.e. no age dependency)
+# The following code implements the equation 3 mixture model, HOWEVER the formulas         
+# for the mixing probability and the mean are intecept only models which removes the 
+# age-dependency. Therefore the following code implements M1
+#*********************************************  
+#equation 8: 
+formula.mean.y <- ~ 1
+#equation 10:
+formula.mix.prob <- ~ 1
+
+
+lr.estim.mixture.emp <- function(formula.mean.y,
+                                 formula.mix.prob,messages=TRUE,
+                                 start.theta=NULL,
+                                 return.hessian=FALSE)  {
+  a.max <- max(a)
+  #matrix for mu(a) in equation 8:
+  D.t.y <- model.matrix(formula.mean.y,data=data.frame(age=a))
+  #matrix for p(a) in equation 10:
+  D.t.mix.prob <- model.matrix(formula.mix.prob,data=data.frame(age=a))
+  
+  time.covar <- 0:(a.max-1)
+  #number of params for equation 8: 
+  p.mean.y <- ncol(D.t.y)
+  #number of params for equation 10: 
+  p.mix.prob <- ncol(D.t.mix.prob)
+  #initialize starting parameters = 0:
+  if(is.null(start.theta)) start.theta <- c(rep(0,p.mean.y+p.mix.prob+3)) 
+  #accounting for truncation of data
+  threshold <- tapply(y,a,max)
+  threshold.data <- sapply(a,function(i)
+    threshold[i])
+  #log likelihood function for the EM:
+  log.lik <- function(theta) {
+    #equation 8 params: 
+    beta <- theta[1:p.mean.y]
+    #equation 10 params: 
+    beta.tilde <- theta[(p.mean.y+1):(p.mean.y+p.mix.prob)]
+    #equation 3 params:
+    delta <- 1+exp(theta[p.mean.y+p.mix.prob+1])
+    sigma2.mix1 <- exp(theta[p.mean.y+p.mix.prob+2])
+    sigma2.mix2 <- exp(theta[p.mean.y+p.mix.prob+3])
+    #equation 3:
+    pr.a.mix <- 1/(1+exp(-D.t.mix.prob%*%beta.tilde))
+    #equation 3 params:
+    mu.a.mix1 <- exp(D.t.y%*%beta)
+    mu.a.mix2 <- delta*mu.a.mix1
+    #natural log transformation of the mean and sd in equation 3:
+    mean.ln.mix1 <- log(mu.a.mix1/sqrt(1+sigma2.mix1/(mu.a.mix1^2)))
+    sd.ln.mix1 <- sqrt(log(1+sigma2.mix1/(mu.a.mix1^2)))
+    mean.ln.mix2 <- log(mu.a.mix2/sqrt(1+sigma2.mix2/(mu.a.mix2^2)))
+    sd.ln.mix2 <- sqrt(log(1+sigma2.mix2/(mu.a.mix2^2)))
+    #accounting for truncation in the distribution function:
+    trunc.prob <- pr.a.mix*pnorm(threshold.data,
+                                 mean=mean.ln.mix2,
+                                 sd=sd.ln.mix2,log=FALSE)+
+      (1-pr.a.mix)*pnorm(threshold.data,
+                         mean=mean.ln.mix1,
+                         sd=sd.ln.mix1,log=FALSE)
+    #probability density:
+    num <- (pr.a.mix*dnorm(y,
+                           mean=mean.ln.mix2,
+                           sd=sd.ln.mix2,log=FALSE)+
+              (1-pr.a.mix)*dnorm(y,
+                                 mean=mean.ln.mix1,
+                                 sd=sd.ln.mix1,log=FALSE))
+    #the likelihood, accounting for truncation: 
+    llik <- sum(log(num)-log(trunc.prob))
+  }
+  #optimization of the log likelihood: 
+  estim <- nlminb(start.theta,
+                  function(x) -log.lik(x),
+                  control=list(trace=1*messages))  
+  
+  library(numDeriv)
+  if(return.hessian) estim$H <- hessian(log.lik,estim$par)
+  #extracting M1 parameters
+  estim$regression.mean.antibody <- estim$par[1:p.mean.y] 
+  estim$regression.mixing.prob <- estim$par[(p.mean.y+1):(p.mean.y+p.mix.prob)] 
+  names(estim$regression.mean.antibody) <- colnames(D.t.y) 
+  names(estim$regression.mixing.prob) <- colnames(D.t.mix.prob)
+  estim$mean.fact <-  1+exp(estim$par[p.mean.y+p.mix.prob+1])
+  estim$sigma2.mix1 <-  exp(estim$par[p.mean.y+p.mix.prob+2]) 
+  estim$sigma2.mix2 <-  exp(estim$par[p.mean.y+p.mix.prob+3]) 
+  estim$formula.mean.y <- formula.mean.y 
+  estim$formula.mix.prob <- formula.mix.prob 
+  estim$D.t.y <- D.t.y 
+  estim$D.t.mix.prob <- D.t.mix.prob 
+  estim$aic <- 2*length(estim$par)+2*estim$objective 
+  estim$bic <- length(estim$par)* log(n) + 2*estim$objective
+  return(estim)
+}
+
+
+#********************************************************************************************      
+#Fitting the empirical model for M1
+#********************************************************************************************  
+
+estim.emp <- lr.estim.mixture.emp(formula.mean.y,
+                                  formula.mix.prob,
+                                  return.hessian=TRUE)
+
+#use the Hessian matrix to obtain CIs. 
+# If you are maximising a likelihood then the covariance matrix of the estimates 
+# is (asymptotically) the inverse of the negative of the Hessian. 
+# The standard errors are the square roots of the diagonal elements of the covariance
+fisher_info_emp <- solve(-estim.emp$H) 
+prop_sigma_emp<- sqrt(diag(fisher_info_emp))
+
+emp.params  <- data.frame (estim.emp$par)
+emp.params.prop <- data.frame(prop_sigma_emp)
+names(emp.params)[1] <- "par"
+names(emp.params.prop)[1] <- "prop_sigma_emp"
+
+emp.interval <- merge(emp.params, emp.params.prop, by=0, all=TRUE)
+emp.interval$lower_emp <- emp.interval$par-1.96*emp.interval$prop_sigma_emp
+emp.interval$upper_emp <- emp.interval$par+1.96*emp.interval$prop_sigma_emp
+emp.interval <-  emp.interval %>% 
+  select(-c(prop_sigma_emp, "Row.names"))
+emp.interval <- t(emp.interval)
+emp.interval <- as.data.frame(emp.interval)
+emp.interval
+
+#transform the parameters from log scale 
+#(see transformations for delta, sigma2.mix1 and sigma2.mix2 in the lr.estim.mixture.emp function)
+# take care to specify v3,v4 and v5 correctly, ie that they correspond to the correct parameters
+emp.interval$V3 <- 1+exp(emp.interval$V3)
+emp.interval$V4 <- exp(emp.interval$V4)
+emp.interval$V5 <- exp(emp.interval$V5)
+emp.interval
+
+
+#********************************************************************************************      
+# Plot the mixture distribution 
+#********************************************************************************************  
+
+age.dist <- function(estim.emp,age,plot.legend=FALSE) {
+  D.t.y <- model.matrix(estim.emp$formula.mean.y,data=data.frame(age=age))
+  
+  D.t.mix.prob <- model.matrix(estim.emp$formula.mix.prob,data=data.frame(age=age))
+  
+  
+  mu.age.mix1 <- exp(D.t.y%*%estim.emp$regression.mean.antibody)
+  mu.age.mix2 <- mu.age.mix1*estim.emp$mean.fact
+  
+  mean.g.mix1.emp = log(mu.age.mix1/sqrt(1+estim.emp$sigma2.mix1/(mu.age.mix1^2)))
+  sd.g.mix1.emp = sqrt(log(1+estim.emp$sigma2.mix1/(mu.age.mix1^2)))
+  
+  mean.g.mix2.emp =log(mu.age.mix2/sqrt(1+estim.emp$sigma2.mix2/(mu.age.mix2^2)))
+  sd.g.mix2.emp =sqrt(log(1+estim.emp$sigma2.mix2/(mu.age.mix2^2)))
+  
+  threshold <- tapply(y,a,max)
+  threshold.data <- threshold[age]
+  
+  pr.t.mix.emp <- as.numeric(1/(1+exp(-D.t.mix.prob%*%estim.emp$regression.mixing.prob)))
+  cut.off <- (mean.g.mix1.emp+(3*sd.g.mix1.emp))
+  
+  par(mar=c(5.1,5,4.1,2.5))
+  hist(y[a==age], xlab="log OD", probability = TRUE, ylab="",
+       main=paste("Age ",age),breaks=10, cex.lab=2, cex.axis=1.5, cex.main=2, 
+       cex.sub=1.5, cex.axis=2,xlim=c(-8,2), ylim=c(0,0.5))
+  
+  
+  f.emp <-  function(x) exp(log(pr.t.mix.emp*dnorm(x,mean.g.mix2.emp,sd.g.mix2.emp)+
+                                  (1-pr.t.mix.emp)*dnorm(x,mean.g.mix1.emp,sd.g.mix1.emp))-
+                              log(pr.t.mix.emp*pnorm(threshold.data,mean.g.mix2.emp,sd.g.mix2.emp)+
+                                    (1-pr.t.mix.emp)*
+                                    pnorm(threshold.data,mean.g.mix1.emp,sd.g.mix1.emp)))
+  f.emp <- Vectorize(f.emp,"x")
+  curve(f.emp,col=4,add = TRUE, lwd=3,lty="solid",xlim = c(-10,threshold.data))
+  if(plot.legend) legend(-1,0.5,c("Unified","Empirical"),col=c(2,4),lty=c("solid","dashed"),lwd=2.5,cex=1.5)
+  abline(v=cut.off, col="red",lty="dashed",lwd =2)
+  text(x = cut.off+1, y = 0.45, label=round(cut.off, digits = 2),col="red",cex=2.5)
+  
+  return(cut.off)
+}
+
+age.dist(estim.emp,age=1,plot.legend = F)
+
+#extract the cut-off value
+cut.off <- age.dist(estim.emp,age=1,plot.legend = F)
+
+
+#********************************************************************************************      
+# Extract seroprevalence using thresholds
+#********************************************************************************************  
+library(dplyr)
+#create a dataset containing a seropositivity (1=yes, 0=no) column  
+seropos <- data %>% 
+  select(ama_norm,age) %>% 
+  mutate(y=log(ama_norm))%>%
+  mutate(cutoff=cut.off)%>%
+  mutate(seropos = ifelse(y > (cutoff),1, 0)) 
+head(seropos)
+library(data.table)
+
+write.csv(seropos,'seropos.csv')
+save(seropos)
+#Calculate seroprevalence with 95% CIs
+seroprev <-  seropos %>%
+  filter(!is.na(seropos))%>%
+  count(seropos) %>%
+  mutate(prop = n / sum(n), 
+         lower = lapply(n, prop.test, n = sum(n)), ##gives 0.95 CIs
+         upper = sapply(lower, function(x) x$conf.int[2]), 
+         lower = sapply(lower, function(x) x$conf.int[1])) 
+seroprev
+
+
+#Calculate seroprevalence according to age with 95% CIs
+#Note that data has already been dichotomized with the same threshold for all ages. 
+seroprev.a <-  as.data.frame(seropos %>%
+                               filter(!is.na(seropos))%>%
+                               group_by(age) %>%
+                               count(seropos) %>%
+                               mutate(prop = n / sum(n), 
+                                      lower = lapply(n, prop.test, n = sum(n)), ##gives 0.95 CIs
+                                      upper = sapply(lower, function(x) x$conf.int[2]), 
+                                      lower = sapply(lower, function(x) x$conf.int[1]))%>%
+                               filter(seropos==1) %>%
+                               select(age, prop, lower, upper))
+
+seroprev.zero <-  as.data.frame(seropos %>%
+                                  filter(!is.na(seropos))%>%
+                                  group_by(age) %>%
+                                  count(seropos) %>%
+                                  mutate(prop = n / sum(n), 
+                                         lower = lapply(n, prop.test, n = sum(n)), ##gives 0.95 CIs
+                                         upper = sapply(lower, function(x) x$conf.int[2]), 
+                                         lower = sapply(lower, function(x) x$conf.int[1]))%>%
+                                  filter(prop==1) %>%
+                                  filter(seropos==0) %>%
+                                  mutate(prop=replace(prop,prop==1,0)) %>%
+                                  mutate(lower=replace(lower,lower>0,0)) %>%
+                                  mutate(upper=replace(upper,upper>0,0)) %>%
+                                  select(age, prop, lower, upper))
+
+seroprev.a <- rbind(seroprev.a,seroprev.zero)
+
+
+
+#Plot Without 0.95 confidence intervals  
+plot(seroprev.a$prop, ylab="P", xlab="age", col="blue",pch=16, ylim=c(0,1),
+     cex.lab=2, cex.axis=1.5, cex.main=2, cex.sub=1.5, cex.axis=2)
+
+#Plot With  0.95 confidence intervals  
+require(plotrix)
+plotCI(seroprev.a$prop,li=seroprev.a$lower,ui=seroprev.a$upper, 
+       ylab="P", xlab="age", col="blue",pch=16, ylim=c(0,1),
+       cex.lab=1.5, cex.axis=1.5, cex.main=2, cex.sub=1.5,xaxt='n')
+axis(side=1, at=seq(0,16, 2),cex.axis=1.5)
+
+
+                                                        
+
+#********************************************************************************************     
+# Apply seroprevalence in RCM 
+#********************************************************************************************  
+#generate a dataset which contains y, age, and prevalence according to age
+rcm.df <- merge(seropos,seroprev.a,by="age")
+head(rcm.df)
+y <- rcm.df$y
+y.bin <- rcm.df$seropos
+a <- rcm.df$age
+prob.pos <- rcm.df$prop
+
+#****************************************     
+#Create a function to implement equation 7.  (Note this is the same function found in Part A)
+#****************************************
+
+# Set the regression for mu(a) to be the same as in the estim.emp object (i.e. the mixture model)
+# Note that in the case of the classical analysis in this step, the regression is an intercept only model
+formula.mean.y <- estim.emp$formula.mean.y
+# Set the regression for the seroconversion rate (lambda). 
+# In this analysis, we use an intercept only model for lambda. 
+# However, covariates such as altitude can be added to this formula if the interest is to measure and account for these covariates. 
+# For example, in malaria epidemiology altitude can be an important predictor for transmission intensity. Whether or not to include additional covariates can be tested and results compared using an appropriate index such as AIC. 
+
+formula.log.lambda <- ~ 1
+
+rcm.model <- function(y.bin,
+                      formula.mean.y,
+                      formula.log.lambda,
+                      omega.fixed,
+                      messages=TRUE,
+                      start.theta=NULL,
+                      return.hessian=FALSE) {
+  a.max <- max(a)
+  
+  D.lambda <- model.matrix(formula.log.lambda,data=data)
+  
+  p.lambda <- ncol(D.lambda)
+  if(is.null(start.theta)) start.theta <- c(rep(0,p.lambda)) 
+  omega <- omega.fixed
+  log.lik <- function(theta) {
+    gamma <- theta[1:p.lambda]
+    lambda <- exp(D.lambda%*%gamma)
+    pr.t.mix <- exp((log(lambda)-log((lambda+omega))))*(1-exp(-(lambda+omega)*a))
+    
+    llik <- sum(dbinom(y.bin,size=1,prob=pr.t.mix,log=TRUE)) 
+    llik 
+  }
+  
+  estim <- 
+    nlminb(start.theta,
+           function(x) -log.lik(x),
+           control=list(trace=1*messages))  
+  
+  library(numDeriv)
+  if(return.hessian) estim$H <- hessian(log.lik,estim$par)
+  estim$regression.log.lambda <- estim$par[1:p.lambda]
+  names(estim$regression.log.lambda) <- colnames(D.lambda)
+  estim$omega <- omega.fixed
+  
+  estim$formula.log.lambda <- formula.log.lambda
+  estim$D.lambda <- D.lambda
+  estim$aic <- 2*length(estim$par)+2*estim$objective
+  return(estim)
+}
+
+estim.rcm <- rcm.model(y.bin=y.bin,
+                       formula.mean.y=formula.mean.y,
+                       formula.log.lambda=formula.log.lambda,
+                       omega.fixed = 0.01,
+                       return.hessian=T)
+#lambda estimate
+log.lambda <- estim.rcm$regression.log.lambda
+
+# use the Hessian matrix to obtain CIs. 
+# If you are maximising a likelihood then the covariance matrix of the estimates 
+# is (asymptotically) the inverse of the negative of the Hessian. 
+# The standard errors are the square roots of the diagonal elements of the covariance
+fisher_info <- solve(-estim.rcm$H) ##should this be inverse?!
+prop_sigma<- sqrt(diag(fisher_info))
+#prop_sigma <- diag(prop_sigma)
+log.upper <- log.lambda+1.96*prop_sigma
+log.lower <- log.lambda-1.96*prop_sigma
+interval <- data.frame(value=exp(log.lambda), upper=exp(log.upper), lower=exp(log.lower))
+interval
+
+#Plot seroprevalence curve from RCM
+compute.pr.a <- function(interval,seroprev.a) {
+  lambda_v <- interval$value
+  lambda_l <- interval$lower
+  lambda_u <- interval$upper
+  omega <- estim.rcm$omega
+  a <- unique(seroprev.a$age)
+  
+  plot(seroprev.a$prop, ylab="", xlab="age", col="blue",pch=16, ylim=c(0,1), xlim=c(0,max(data$age)),
+       cex=1, cex.lab=2, cex.axis=1.5, cex.main=2, cex.sub=1.5, cex.axis=2)
+  
+  f <- function(a) exp((log(lambda_v)-log((lambda_v+omega))))*(1-exp(-(lambda_v+omega)*a))
+  f <- Vectorize(f,"a")
+  
+  f_l <- function(a) exp((log(lambda_l)-log((lambda_l+omega))))*(1-exp(-(lambda_l+omega)*a))
+  f_l <- Vectorize(f_l,"a")
+  
+  f_u <- function(a) exp((log(lambda_u)-log((lambda_u+omega))))*(1-exp(-(lambda_u+omega)*a))
+  f_u <- Vectorize(f_u,"a")
   
   
   curve(f,col="#AB1779",add = TRUE, lwd=2)
@@ -492,8 +962,4 @@ compute.pr.a <- function(interval,seroprev.b) {
   curve(f_u,col="#AB1779",add = TRUE, lwd=1, lty=3)
 }
 
-compute.pr.a(interval,seroprev.b)
-
-
-save.image("ama threshold free.RData")
-
+compute.pr.a(interval,seroprev.a)
