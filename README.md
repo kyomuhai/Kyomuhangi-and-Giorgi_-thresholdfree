@@ -11,8 +11,8 @@ For simplicity, code for M1 is not provided, however this is available on reques
 The antibody measurements used in this analysis are PfAMA OD values obtained from ELISA, however the methods are applicable to any malaria antigen type, and continuous antibody measurement. 
 
 The code is split into 2 parts. 
-    Part A implements M2, the threshold-free approach introduced in this paper, and 
-    Part B implements M1, the classic threshold dependent approach as described in the paper. 
+    1) Part A implements M2, the threshold-free approach introduced in this paper, and 
+    2) Part B implements M1, the classic threshold dependent approach as described in the paper. 
 
 Throughout the script we indicate where the code may need to change depending on the dataset/antibody type under analysis. 
 Explanations of the functions and operations used are provided within the syntax itself, and further details of statistical/mathematical principles of this analysis can be found in the paper. 
