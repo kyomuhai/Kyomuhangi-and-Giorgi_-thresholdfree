@@ -17,7 +17,7 @@ The code is split into 2 parts.
 Throughout the script we indicate where the code may need to change depending on the dataset/antibody type under analysis. 
 Explanations of the functions and operations used are provided within the syntax itself, and further details of statistical/mathematical principles of this analysis can be found in the paper. 
 
-To request access to the dataset used, please contact Gillian Stresman (Gillian.Stresman@lshtm.ac.uk) or Chris Drakeley (Chris.Drakeley@lshtm.ac.uk) at LSHTM.  
+To request access to the dataset used, please contact Gillian Stresman (Gillian.Stresman@lshtm.ac.uk) or Chris Drakeley (Chris.Drakeley@lshtm.ac.uk) at the London School of Hygiene and Tropical Medicine.  
 
 
 # Packages
